@@ -36,3 +36,6 @@ Thumbs.db
 
 # TypeScript cache
 *.tsbuildinfo
+
+# Superpowers brainstorming artifacts
+.superpowers/

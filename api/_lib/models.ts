@@ -31,7 +31,14 @@ const GoogleTokenSchema = new Schema({
   expiresAt: { type: Date, required: true },
 });
 
+const BriefLogSchema = new Schema({
+  userId: { type: String, default: 'pushkar' },
+  date: { type: String, required: true },
+  sentAt: { type: Date, default: Date.now },
+});
+
 export const Priority = mongoose.models.Priority || mongoose.model('Priority', PrioritySchema);
 export const Watchout = mongoose.models.Watchout || mongoose.model('Watchout', WatchoutSchema);
 export const Intention = mongoose.models.Intention || mongoose.model('Intention', IntentionSchema);
 export const GoogleToken = mongoose.models.GoogleToken || mongoose.model('GoogleToken', GoogleTokenSchema);
+export const BriefLog = mongoose.models.BriefLog || mongoose.model('BriefLog', BriefLogSchema);

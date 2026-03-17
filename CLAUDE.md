@@ -8,9 +8,9 @@ This file gives any AI coding assistant (Claude Code, Cursor, Copilot) full cont
 
 A single-page personal dashboard that shows a founder their entire day on open. The goal: understand the full day in under 10 seconds. No navigation, no tabs, no onboarding — just information in the order the brain needs it.
 
-**Primary user:** Pushkar (single-user app — no multi-tenant complexity)  
-**Deployed at:** Vercel (React + serverless API routes)  
-**AI in this app:** None. Zero. Do not add it.
+**Primary user:** Pushkar (single-user app — no multi-tenant complexity)
+**Deployed at:** Vercel (React + serverless API routes)
+**AI in this app:** Gemini 2.0 Flash — used exclusively in the morning brief email cron job for generating priorities and day summaries. No AI in the dashboard frontend.
 
 ---
 
@@ -292,7 +292,7 @@ All routes return JSON. Errors return `{ error: string }` with appropriate HTTP 
 
 ## What NOT to do
 
-- Do not add AI or Claude API anywhere — this version has zero AI
+- Do not add AI to the dashboard frontend — Gemini is only used in the email cron job
 - Do not expose `GOOGLE_CLIENT_SECRET` or `MONGODB_URI` to the browser
 - Do not use MCPs — they only exist inside Claude.ai and are unavailable in deployed apps
 - Do not cap the number of priority items
