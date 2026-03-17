@@ -12,6 +12,7 @@ import watchouts from './api/watchouts.js';
 import intention from './api/intention.js';
 import me from './api/me.js';
 import authLogout from './api/auth/logout.js';
+import morningBrief from './api/cron/morning-brief.js';
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
@@ -70,6 +71,8 @@ app.delete('/api/watchouts', adapt(watchouts));
 
 app.get('/api/intention', adapt(intention));
 app.put('/api/intention', adapt(intention));
+
+app.get('/api/cron/morning-brief', adapt(morningBrief));
 
 const PORT = 3001;
 app.listen(PORT, () => {

@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/morning-brief",
+      "schedule": "30 0 * * *"
+    }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
