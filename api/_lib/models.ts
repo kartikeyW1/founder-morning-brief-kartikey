@@ -27,6 +27,7 @@ const IntentionSchema = new Schema({
 const GoogleTokenSchema = new Schema({
   userId: { type: String, default: 'pushkar' },
   displayName: { type: String, default: '' },
+  googleEmail: { type: String, default: '' },
   accessToken: { type: String, required: true },
   refreshToken: { type: String, required: true },
   expiresAt: { type: Date, required: true },

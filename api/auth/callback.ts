@@ -16,16 +16,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     oauth2.setCredentials(tokens);
 
-    // Fetch user profile to get their name
+    // Fetch user profile to get their name and email
     const oauth2Api = google.oauth2({ version: 'v2', auth: oauth2 });
     const { data: profile } = await oauth2Api.userinfo.get();
     const name = profile.given_name || profile.name || '';
+    const email = profile.email || '';
+
+    // Check if a token already exists
+    const existing = await GoogleToken.findOne({ userId: 'pushkar' });
+
+    if (existing && existing.googleEmail && existing.googleEmail !== email) {
+      // Someone else is trying to authenticate — reject
+      return res.status(403).send(
+        '<h2>Access Denied</h2><p>This app is already linked to a different Google account. Contact the admin.</p>'
+      );
+    }
 
     await GoogleToken.findOneAndUpdate(
       { userId: 'pushkar' },
       {
         userId: 'pushkar',
         displayName: name,
+        googleEmail: email,
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresAt: new Date(tokens.expiry_date!),
