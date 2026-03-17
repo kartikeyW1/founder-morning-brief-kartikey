@@ -89,14 +89,18 @@ async function fetchUnreadEmails(auth: any) {
 async function sendEmailViaGmail(gmailAuth: any, to: string, subject: string, html: string) {
   const gmail = google.gmail({ version: 'v1', auth: gmailAuth });
 
+  // MIME-encode subject for UTF-8 support (em dashes, etc.)
+  const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`;
+
   // Build RFC 2822 email with HTML content
   const rawEmail = [
     `To: ${to}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodedSubject}`,
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
     '',
-    html,
+    Buffer.from(html).toString('base64'),
   ].join('\r\n');
 
   // Gmail API requires base64url encoding
@@ -180,11 +184,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
 
       html = buildBriefEmail(analysis, meetings, today, userName);
-      subjectLine = `Your Morning Brief — ${getDisplayDate()}`;
+      subjectLine = `Your Morning Brief - ${getDisplayDate()}`;
     } catch (geminiErr) {
       console.error('Gemini failed, sending fallback email:', geminiErr);
       html = buildFallbackEmail(meetings, emails.length, today, userName);
-      subjectLine = `Your Morning Brief — ${getDisplayDate()} (lite)`;
+      subjectLine = `Your Morning Brief - ${getDisplayDate()} (lite)`;
     }
 
     // Preview mode: return HTML directly
