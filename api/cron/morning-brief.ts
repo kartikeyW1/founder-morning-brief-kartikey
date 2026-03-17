@@ -86,22 +86,30 @@ async function fetchUnreadEmails(auth: any) {
   );
 }
 
-async function sendEmail(to: string, from: string, subject: string, html: string) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-    },
-    body: JSON.stringify({ from, to: [to], subject, html }),
+async function sendEmailViaGmail(gmailAuth: any, to: string, subject: string, html: string) {
+  const gmail = google.gmail({ version: 'v1', auth: gmailAuth });
+
+  // Build RFC 2822 email with HTML content
+  const rawEmail = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    html,
+  ].join('\r\n');
+
+  // Gmail API requires base64url encoding
+  const encoded = Buffer.from(rawEmail)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw: encoded },
   });
-
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`Resend error ${res.status}: ${errBody}`);
-  }
-
-  return res.json();
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -115,10 +123,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const isPreview = req.query?.preview === 'true';
   const today = getTodayIST();
   const toEmail = process.env.BRIEF_TO_EMAIL;
-  const fromEmail = process.env.BRIEF_FROM_EMAIL;
 
-  if (!toEmail || !fromEmail) {
-    return res.status(500).json({ error: 'BRIEF_TO_EMAIL or BRIEF_FROM_EMAIL not set' });
+  if (!toEmail) {
+    return res.status(500).json({ error: 'BRIEF_TO_EMAIL not set' });
   }
 
   try {
@@ -186,8 +193,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.send(html);
     }
 
-    // Send email via Resend
-    await sendEmail(toEmail, fromEmail, subjectLine, html);
+    // Send email via Gmail API
+    await sendEmailViaGmail(auth, toEmail, subjectLine, html);
 
     // Log successful send for deduplication
     await BriefLog.create({ userId: 'pushkar', date: today });
@@ -196,15 +203,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (err: any) {
     console.error('Morning brief cron error:', err);
 
-    // Try to send failure notification
-    if (!isPreview && toEmail && fromEmail) {
+    // Try to send failure notification via Gmail
+    if (!isPreview && toEmail) {
       try {
-        await sendEmail(
-          toEmail,
-          fromEmail,
-          'Morning Brief — Failed to Generate',
-          `<p>Your morning brief failed to generate today. Check Vercel logs.</p><p>Error: ${err.message}</p>`
-        );
+        const profile = await getAuthedClientWithProfile();
+        if (profile) {
+          await sendEmailViaGmail(
+            profile.auth,
+            toEmail,
+            'Morning Brief — Failed to Generate',
+            `<p>Your morning brief failed to generate today. Check Vercel logs.</p><p>Error: ${err.message}</p>`
+          );
+        }
       } catch (notifyErr) {
         console.error('Failed to send error notification:', notifyErr);
       }
