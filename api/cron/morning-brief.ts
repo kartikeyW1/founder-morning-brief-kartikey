@@ -1,0 +1,198 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { google } from 'googleapis';
+import { getAuthedClient } from '../_lib/google.js';
+import { connectDB } from '../_lib/db.js';
+import { BriefLog } from '../_lib/models.js';
+import { analyzeWithGemini } from '../_lib/gemini.js';
+import { buildBriefEmail, buildFallbackEmail } from '../_lib/email-template.js';
+
+function getTodayIST(): string {
+  const now = new Date();
+  return now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
+}
+
+function getDisplayDate(): string {
+  const now = new Date();
+  return now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'Asia/Kolkata',
+  });
+}
+
+async function fetchCalendarEvents(auth: any) {
+  const calendar = google.calendar({ version: 'v3', auth });
+  const now = new Date();
+  // Use IST for day boundaries
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + istOffset);
+  const startOfDay = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate()) - istOffset);
+  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+
+  const response = await calendar.events.list({
+    calendarId: 'primary',
+    timeMin: startOfDay.toISOString(),
+    timeMax: endOfDay.toISOString(),
+    singleEvents: true,
+    orderBy: 'startTime',
+  });
+
+  return (response.data.items || [])
+    .filter((e) => e.status !== 'cancelled' && e.attendees?.find(
+      (a) => a.self && a.responseStatus === 'declined'
+    ) === undefined)
+    .map((e) => ({
+      id: e.id,
+      title: e.summary || '(No title)',
+      time: e.start?.dateTime || e.start?.date || '',
+      endTime: e.end?.dateTime || e.end?.date || '',
+      location: e.location || '',
+      meetLink: e.hangoutLink || e.conferenceData?.entryPoints?.[0]?.uri || '',
+    }));
+}
+
+async function fetchUnreadEmails(auth: any) {
+  const gmail = google.gmail({ version: 'v1', auth });
+  const list = await gmail.users.messages.list({
+    userId: 'me',
+    q: 'is:unread',
+    maxResults: 20,
+  });
+
+  const messages = list.data.messages || [];
+  return Promise.all(
+    messages.map(async (m) => {
+      const msg = await gmail.users.messages.get({
+        userId: 'me',
+        id: m.id!,
+        format: 'metadata',
+        metadataHeaders: ['From', 'Subject', 'Date'],
+      });
+      const headers = msg.data.payload?.headers || [];
+      const getHeader = (name: string) =>
+        headers.find((h) => h.name === name)?.value || '';
+
+      const fromRaw = getHeader('From');
+      const senderMatch = fromRaw.match(/^(.+?)(?:\s*<.*>)?$/);
+      const sender = senderMatch ? senderMatch[1].replace(/"/g, '').trim() : fromRaw;
+
+      return {
+        sender,
+        subject: getHeader('Subject') || '(No subject)',
+        receivedAt: getHeader('Date'),
+      };
+    })
+  );
+}
+
+async function sendEmail(to: string, from: string, subject: string, html: string) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+    },
+    body: JSON.stringify({ from, to: [to], subject, html }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`Resend error ${res.status}: ${errBody}`);
+  }
+
+  return res.json();
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Auth check — verify cron secret
+  const authHeader = req.headers['authorization'];
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const isPreview = req.query?.preview === 'true';
+  const today = getTodayIST();
+  const toEmail = process.env.BRIEF_TO_EMAIL;
+  const fromEmail = process.env.BRIEF_FROM_EMAIL;
+
+  if (!toEmail || !fromEmail) {
+    return res.status(500).json({ error: 'BRIEF_TO_EMAIL or BRIEF_FROM_EMAIL not set' });
+  }
+
+  try {
+    await connectDB();
+
+    // Deduplication: skip if already sent today (unless preview)
+    if (!isPreview) {
+      const existing = await BriefLog.findOne({ date: today, userId: 'pushkar' });
+      if (existing) {
+        return res.json({ status: 'already_sent', date: today });
+      }
+    }
+
+    // Fetch Google data
+    const auth = await getAuthedClient();
+    if (!auth) {
+      throw new Error('No Google token found — re-authenticate via the dashboard');
+    }
+
+    const [meetings, emails] = await Promise.all([
+      fetchCalendarEvents(auth),
+      fetchUnreadEmails(auth),
+    ]);
+
+    // Try Gemini analysis
+    let html: string;
+    let subjectLine: string;
+
+    try {
+      const analysis = await analyzeWithGemini(meetings, emails, getDisplayDate());
+
+      // Validate keyMeetingIndices bounds
+      analysis.keyMeetingIndices = analysis.keyMeetingIndices.filter(
+        (i) => i >= 0 && i < meetings.length
+      );
+
+      html = buildBriefEmail(analysis, meetings, today, 'Pushkar');
+      subjectLine = `Your Morning Brief — ${getDisplayDate()}`;
+    } catch (geminiErr) {
+      console.error('Gemini failed, sending fallback email:', geminiErr);
+      html = buildFallbackEmail(meetings, emails.length, today, 'Pushkar');
+      subjectLine = `Your Morning Brief — ${getDisplayDate()} (lite)`;
+    }
+
+    // Preview mode: return HTML directly
+    if (isPreview) {
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(html);
+    }
+
+    // Send email via Resend
+    await sendEmail(toEmail, fromEmail, subjectLine, html);
+
+    // Log successful send for deduplication
+    await BriefLog.create({ userId: 'pushkar', date: today });
+
+    res.json({ status: 'sent', date: today });
+  } catch (err: any) {
+    console.error('Morning brief cron error:', err);
+
+    // Try to send failure notification
+    if (!isPreview && toEmail && fromEmail) {
+      try {
+        await sendEmail(
+          toEmail,
+          fromEmail,
+          'Morning Brief — Failed to Generate',
+          `<p>Your morning brief failed to generate today. Check Vercel logs.</p><p>Error: ${err.message}</p>`
+        );
+      } catch (notifyErr) {
+        console.error('Failed to send error notification:', notifyErr);
+      }
+    }
+
+    res.status(500).json({ error: err.message });
+  }
+}
