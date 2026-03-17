@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { google } from 'googleapis';
-import { getAuthedClient } from '../_lib/google.js';
+import { getAuthedClientWithProfile } from '../_lib/google.js';
 import { connectDB } from '../_lib/db.js';
 import { BriefLog } from '../_lib/models.js';
 import { analyzeWithGemini } from '../_lib/gemini.js';
@@ -133,9 +133,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Fetch Google data
-    const auth = await getAuthedClient();
-    if (!auth) {
+    const profile = await getAuthedClientWithProfile();
+    if (!profile) {
       throw new Error('No Google token found — re-authenticate via the dashboard');
+    }
+    const { auth, displayName } = profile;
+
+    // If name isn't stored yet, fetch from Google profile and save it
+    let userName = displayName;
+    if (!userName) {
+      try {
+        const oauth2Api = google.oauth2({ version: 'v2', auth });
+        const { data: userProfile } = await oauth2Api.userinfo.get();
+        userName = userProfile.given_name || userProfile.name || '';
+        if (userName) {
+          const { GoogleToken } = await import('../_lib/models.js');
+          await GoogleToken.updateOne({ userId: 'pushkar' }, { displayName: userName });
+        }
+      } catch {
+        userName = '';
+      }
     }
 
     const [meetings, emails] = await Promise.all([
@@ -155,11 +172,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         (i) => i >= 0 && i < meetings.length
       );
 
-      html = buildBriefEmail(analysis, meetings, today, 'Pushkar');
+      html = buildBriefEmail(analysis, meetings, today, userName);
       subjectLine = `Your Morning Brief — ${getDisplayDate()}`;
     } catch (geminiErr) {
       console.error('Gemini failed, sending fallback email:', geminiErr);
-      html = buildFallbackEmail(meetings, emails.length, today, 'Pushkar');
+      html = buildFallbackEmail(meetings, emails.length, today, userName);
       subjectLine = `Your Morning Brief — ${getDisplayDate()} (lite)`;
     }
 

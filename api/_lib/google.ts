@@ -39,6 +39,34 @@ export async function getAuthedClient() {
   return oauth2;
 }
 
+export async function getAuthedClientWithProfile() {
+  await connectDB();
+  const token = await GoogleToken.findOne({ userId: 'pushkar' });
+  if (!token) return null;
+
+  const oauth2 = getOAuth2Client();
+  oauth2.setCredentials({
+    access_token: token.accessToken,
+    refresh_token: token.refreshToken,
+    expiry_date: token.expiresAt.getTime(),
+  });
+
+  if (token.expiresAt.getTime() < Date.now()) {
+    const { credentials } = await oauth2.refreshAccessToken();
+    await GoogleToken.updateOne(
+      { userId: 'pushkar' },
+      {
+        accessToken: credentials.access_token,
+        refreshToken: credentials.refresh_token || token.refreshToken,
+        expiresAt: new Date(credentials.expiry_date!),
+      }
+    );
+    oauth2.setCredentials(credentials);
+  }
+
+  return { auth: oauth2, displayName: token.displayName || '' };
+}
+
 export const SCOPES = [
   'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/gmail.readonly',

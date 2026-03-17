@@ -25,6 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { userId: 'pushkar' },
       {
         userId: 'pushkar',
+        displayName: name,
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresAt: new Date(tokens.expiry_date!),

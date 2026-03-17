@@ -46,7 +46,7 @@ function buildPrompt(
           .join('\n')
       : 'No unread emails.';
 
-  const system = `You are a concise executive assistant. Analyze today's calendar and unread emails for a startup founder. Be direct, no fluff.`;
+  const system = `You are a concise executive assistant. Analyze today's calendar and unread emails for a startup founder. Be direct, no fluff. Always write in second person — say "You have" not "Today has", say "Your" not "The". Keep it personal and warm but brief.`;
 
   const user = `Today is ${dateStr}.
 
