@@ -125,6 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const isPreview = req.query?.preview === 'true';
+  const isForce = req.query?.force === 'true';
   const today = getTodayIST();
   const toEmail = process.env.BRIEF_TO_EMAIL;
 
@@ -135,8 +136,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     await connectDB();
 
-    // Deduplication: skip if already sent today (unless preview)
-    if (!isPreview) {
+    // Deduplication: skip if already sent today (unless preview or force)
+    if (!isPreview && !isForce) {
       const existing = await BriefLog.findOne({ date: today, userId: 'pushkar' });
       if (existing) {
         return res.json({ status: 'already_sent', date: today });
