@@ -117,7 +117,7 @@ export async function analyzeWithGemini(
 
   const callGemini = async (): Promise<GeminiAnalysis> => {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -126,7 +126,8 @@ export async function analyzeWithGemini(
           contents: [{ parts: [{ text: user }] }],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 2048,
+            responseMimeType: 'application/json',
           },
         }),
       }
