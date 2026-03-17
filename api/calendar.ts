@@ -36,7 +36,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Mark the next upcoming event
     const nowMs = now.getTime();
     for (const event of events) {
-      const eventStart = new Date(event.time).getTime();
       const eventEnd = new Date(event.endTime).getTime();
       if (eventEnd > nowMs) {
         event.isNext = true;
