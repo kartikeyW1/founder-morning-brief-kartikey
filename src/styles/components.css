@@ -1,0 +1,517 @@
+/* ─── Layout ─── */
+.app-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px 24px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  flex-shrink: 0;
+  margin-bottom: 24px;
+  animation: fadeInUp 0.5s ease-out;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.logout-btn {
+  background: none;
+  border: 1px solid rgba(255, 80, 80, 0.25);
+  color: rgba(255, 80, 80, 0.7);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 4px;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 80, 80, 0.1);
+  border-color: rgba(255, 80, 80, 0.5);
+  color: rgba(255, 80, 80, 0.9);
+}
+
+.logout-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.header-date {
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.header-greeting {
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+/* ─── Bento Grid ─── */
+.bento {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
+.bento > div {
+  min-height: 0;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 24px 16px 16px;
+    height: 100vh;
+  }
+  .bento {
+    grid-template-columns: 1fr;
+  }
+  .header-greeting {
+    font-size: 1.25rem;
+  }
+}
+
+/* ─── Card (Glass) ─── */
+.card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  animation: fadeInUp 0.5s ease-out both;
+}
+
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.15s; }
+.card:nth-child(4) { animation-delay: 0.2s; }
+.card:nth-child(5) { animation-delay: 0.25s; }
+
+.card-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.card-count {
+  color: var(--text-secondary);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  margin-left: 6px;
+  font-size: 0.6rem;
+}
+
+/* ─── Scrollable card layout ─── */
+.card.card-scroll-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.card-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: none;
+}
+
+.card-scroll-area:hover,
+.card-scroll-area:active {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.card-scroll-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.card-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.card-scroll-area::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.card-scroll-area:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.card-scroll-footer {
+  flex-shrink: 0;
+  padding-top: 12px;
+}
+
+/* ─── Inputs ─── */
+.inline-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-input);
+  padding: 10px 18px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 400;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.inline-input:focus {
+  border-color: var(--border-accent);
+  box-shadow: var(--accent-glow-sm);
+}
+
+.inline-input::placeholder {
+  color: var(--text-muted);
+}
+
+.textarea-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 14px 18px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 300;
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.textarea-input:focus {
+  border-color: var(--border-accent);
+  box-shadow: var(--accent-glow-sm);
+}
+
+.textarea-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ─── List items ─── */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item-text {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.list-item-text.done {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.list-item-meta {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ─── Checkbox ─── */
+.checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-default);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.checkbox:hover {
+  border-color: var(--accent);
+}
+
+.checkbox.checked {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.checkbox.checked::after {
+  content: '✓';
+  color: white;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* ─── Delete button ─── */
+.delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.list-item:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  color: var(--text-secondary);
+}
+
+/* ─── Badge ─── */
+.badge {
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: var(--radius-badge);
+}
+
+/* ─── Meeting card ─── */
+.meeting-card {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 8px;
+  transition: background 0.2s;
+}
+
+.meeting-card:last-child {
+  margin-bottom: 0;
+}
+
+.meeting-card:hover {
+  background: var(--bg-card-hover);
+}
+
+.meeting-card.is-next {
+  border-color: var(--border-accent);
+  box-shadow: var(--accent-glow-sm);
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.meeting-time {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.meeting-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.meeting-location {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.join-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 5px 14px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: white;
+  background: var(--accent-dark);
+  border: none;
+  border-radius: var(--radius-badge);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.join-btn:hover {
+  background: var(--accent);
+}
+
+/* ─── Email row ─── */
+.email-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.email-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.email-row:last-child {
+  border-bottom: none;
+}
+
+.email-sender {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.email-subject {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-time {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── Show all button ─── */
+.show-all-btn {
+  background: none;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  padding: 8px 20px;
+  border-radius: var(--radius-badge);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.show-all-btn:hover {
+  border-color: var(--border-accent);
+  color: var(--text-primary);
+}
+
+/* ─── Skeleton ─── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.skeleton-line {
+  height: 14px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+}
+
+.skeleton-line:last-child {
+  width: 60%;
+}
+
+/* ─── Auth screen ─── */
+.auth-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 24px;
+}
+
+.auth-title {
+  font-size: 1.25rem;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+.auth-subtitle {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  max-width: 300px;
+  text-align: center;
+}
+
+.auth-btn {
+  padding: 12px 32px;
+  background: var(--accent-dark);
+  color: white;
+  border: none;
+  border-radius: var(--radius-input);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.auth-btn:hover {
+  background: var(--accent);
+  box-shadow: var(--accent-glow-sm);
+}
+
+/* ─── Empty state ─── */
+.empty-state {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
