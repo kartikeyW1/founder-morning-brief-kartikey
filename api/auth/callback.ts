@@ -22,20 +22,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const name = profile.given_name || profile.name || '';
     const email = profile.email || '';
 
-    // Check if a token already exists — only allow the same Google account
-    const existing = await GoogleToken.findOne({ userId: 'pushkar' });
-
-    if (existing) {
-      if (existing.googleEmail && existing.googleEmail !== email) {
-        // Different account trying to authenticate — reject
-        return res.status(403).send(
-          '<h2>Access Denied</h2><p>This app is already linked to a different Google account. Contact the admin.</p>'
-        );
-      }
-      if (!existing.googleEmail) {
-        // First time with email tracking — lock to this account
-        await GoogleToken.updateOne({ userId: 'pushkar' }, { googleEmail: email });
-      }
+    // Hard gate: only the allowed email can authenticate
+    const allowedEmail = process.env.ALLOWED_EMAIL;
+    if (allowedEmail && email !== allowedEmail) {
+      return res.status(403).send(
+        '<h2>Access Denied</h2><p>This app is locked to an authorized account. You are not it.</p>'
+      );
     }
 
     await GoogleToken.findOneAndUpdate(
