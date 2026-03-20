@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { google } from 'googleapis';
+import { gmail } from '@googleapis/gmail';
 import { getAuthedClient } from './_lib/google.js';
 import { getSession } from './_lib/session.js';
 
@@ -10,8 +10,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!auth) return res.status(401).json({ error: 'No Google token' });
 
   try {
-    const gmail = google.gmail({ version: 'v1', auth });
-    const list = await gmail.users.messages.list({
+    const gm = gmail({ version: 'v1', auth });
+    const list = await gm.users.messages.list({
       userId: 'me',
       q: 'is:unread',
       maxResults: 20,
@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const messages = list.data.messages || [];
     const emails = await Promise.all(
       messages.map(async (m) => {
-        const msg = await gmail.users.messages.get({
+        const msg = await gm.users.messages.get({
           userId: 'me',
           id: m.id!,
           format: 'metadata',

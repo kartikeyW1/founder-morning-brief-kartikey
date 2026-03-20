@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { google } from 'googleapis';
+import { calendar } from '@googleapis/calendar';
+import { gmail } from '@googleapis/gmail';
+import { oauth2 as googleOAuth2Api } from '@googleapis/oauth2';
 import { getAuthedClientWithProfile } from '../_lib/google.js';
 import { connectDB } from '../_lib/db.js';
 import { BriefLog } from '../_lib/models.js';
@@ -22,7 +24,7 @@ function getDisplayDate(): string {
 }
 
 async function fetchCalendarEvents(auth: any) {
-  const calendar = google.calendar({ version: 'v3', auth });
+  const cal = calendar({ version: 'v3', auth });
   const now = new Date();
   // Use IST for day boundaries
   const istOffset = 5.5 * 60 * 60 * 1000;
@@ -30,7 +32,7 @@ async function fetchCalendarEvents(auth: any) {
   const startOfDay = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate()) - istOffset);
   const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
-  const response = await calendar.events.list({
+  const response = await cal.events.list({
     calendarId: 'primary',
     timeMin: startOfDay.toISOString(),
     timeMax: endOfDay.toISOString(),
@@ -53,8 +55,8 @@ async function fetchCalendarEvents(auth: any) {
 }
 
 async function fetchUnreadEmails(auth: any) {
-  const gmail = google.gmail({ version: 'v1', auth });
-  const list = await gmail.users.messages.list({
+  const gm = gmail({ version: 'v1', auth });
+  const list = await gm.users.messages.list({
     userId: 'me',
     q: 'is:unread',
     maxResults: 20,
@@ -63,7 +65,7 @@ async function fetchUnreadEmails(auth: any) {
   const messages = list.data.messages || [];
   return Promise.all(
     messages.map(async (m) => {
-      const msg = await gmail.users.messages.get({
+      const msg = await gm.users.messages.get({
         userId: 'me',
         id: m.id!,
         format: 'metadata',
@@ -87,7 +89,7 @@ async function fetchUnreadEmails(auth: any) {
 }
 
 async function sendEmailViaGmail(gmailAuth: any, to: string, subject: string, html: string) {
-  const gmail = google.gmail({ version: 'v1', auth: gmailAuth });
+  const gm = gmail({ version: 'v1', auth: gmailAuth });
 
   // MIME-encode subject for UTF-8 support (em dashes, etc.)
   const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`;
@@ -110,7 +112,7 @@ async function sendEmailViaGmail(gmailAuth: any, to: string, subject: string, ht
     .replace(/\//g, '_')
     .replace(/=+$/, '');
 
-  await gmail.users.messages.send({
+  await gm.users.messages.send({
     userId: 'me',
     requestBody: { raw: encoded },
   });
@@ -155,7 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let userName = displayName;
     if (!userName) {
       try {
-        const oauth2Api = google.oauth2({ version: 'v2', auth });
+        const oauth2Api = googleOAuth2Api({ version: 'v2', auth });
         const { data: userProfile } = await oauth2Api.userinfo.get();
         userName = userProfile.given_name || userProfile.name || '';
         if (userName) {

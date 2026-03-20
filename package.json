@@ -12,8 +12,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@googleapis/calendar": "^14.2.0",
+    "@googleapis/gmail": "^16.1.1",
+    "@googleapis/oauth2": "^5.0.1",
     "cookie": "^1.1.1",
-    "googleapis": "^171.4.0",
+    "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.3.0",
     "react": "^19.2.4",

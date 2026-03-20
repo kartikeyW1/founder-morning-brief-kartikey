@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { google } from 'googleapis';
+import { calendar } from '@googleapis/calendar';
 import { getAuthedClient } from './_lib/google.js';
 import { getSession } from './_lib/session.js';
 
@@ -10,12 +10,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!auth) return res.status(401).json({ error: 'No Google token' });
 
   try {
-    const calendar = google.calendar({ version: 'v3', auth });
+    const cal = calendar({ version: 'v3', auth });
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
-    const response = await calendar.events.list({
+    const response = await cal.events.list({
       calendarId: 'primary',
       timeMin: startOfDay.toISOString(),
       timeMax: endOfDay.toISOString(),

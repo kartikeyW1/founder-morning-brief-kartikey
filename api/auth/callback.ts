@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { google } from 'googleapis';
+import { oauth2 as googleOAuth2Api } from '@googleapis/oauth2';
 import { getOAuth2Client } from '../_lib/google.js';
 import { GoogleToken } from '../_lib/models.js';
 import { connectDB } from '../_lib/db.js';
@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     oauth2.setCredentials(tokens);
 
     // Fetch user profile to get their name and email
-    const oauth2Api = google.oauth2({ version: 'v2', auth: oauth2 });
+    const oauth2Api = googleOAuth2Api({ version: 'v2', auth: oauth2 });
     const { data: profile } = await oauth2Api.userinfo.get();
     const name = profile.given_name || profile.name || '';
     const email = profile.email || '';
