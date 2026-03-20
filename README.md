@@ -1,43 +1,45 @@
 # Founder Morning Brief
 
-A single-page personal dashboard that shows a founder their entire day on open. Understand the full day in under 10 seconds — no navigation, no tabs, just information in the order the brain needs it.
+An automated morning brief email for startup founders. Every day at 6:00 AM IST, it reads your Google Calendar and Gmail, runs them through Gemini 2.0 Flash, and sends you a styled email with AI-generated priorities, a day summary, and your meeting schedule — tiered by importance.
 
-## Sections
+Built for Pushkar at [Lemnisca](https://lemnisca.bio) during an internal hackathon sprint.
 
-1. **Priorities** — manual entry with check-off and carry-over from yesterday
-2. **Meetings** — read-only from Google Calendar, next meeting highlighted
-3. **Unread Emails** — latest 20 from Gmail, 5 shown by default
-4. **Watchouts** — daily bullet list, no carry-over
-5. **Intention** — single free-text input, fresh each morning
+## How it works
+
+1. Vercel cron fires daily at 6:00 AM IST
+2. Fetches today's calendar events and unread emails via Google APIs
+3. Gemini 2.0 Flash analyzes both and produces priorities, a day summary, and key meeting flags
+4. A styled HTML email is built and sent via Gmail API
+5. If Gemini fails, a fallback email with just the schedule and inbox count is sent
 
 ## Tech stack
 
-- **Frontend:** React (Vite) + TypeScript
-- **Styling:** Plain CSS with custom properties
-- **Backend:** Vercel serverless API routes (`/api/*`)
-- **Database:** MongoDB Atlas (Mongoose)
-- **Auth:** Google OAuth 2.0 (Calendar + Gmail scopes)
+- **Backend:** Vercel serverless API routes (TypeScript)
+- **AI:** Gemini 2.0 Flash (structured summarization)
+- **Email delivery:** Gmail API (sends from the user's own address)
+- **Data:** Google Calendar API + Gmail API
+- **Database:** MongoDB Atlas (OAuth tokens, dedup logs)
+- **Scheduling:** Vercel Cron
+- **Dashboard (secondary):** React (Vite) + plain CSS
 
 ## Local development
 
 ### Prerequisites
 
 - Node.js 18+
-- A MongoDB Atlas cluster
+- MongoDB Atlas cluster
 - Google Cloud project with Calendar and Gmail APIs enabled
 - OAuth 2.0 credentials (Web application type)
+- Gemini API key from Google AI Studio
 
 ### Setup
 
 ```bash
-# Install dependencies
 npm install
-
-# Create environment file
 cp .env.example .env.local
 ```
 
-Fill in `.env.local`:
+Fill in `.env.local` with your actual values:
 
 ```
 GOOGLE_CLIENT_ID=
@@ -45,6 +47,10 @@ GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/callback
 MONGODB_URI=mongodb+srv://...
 SESSION_SECRET=any-random-string
+GEMINI_API_KEY=
+CRON_SECRET=any-random-string
+BRIEF_TO_EMAIL=recipient@example.com
+ALLOWED_EMAIL=authorized-google-account@example.com
 ```
 
 ### Run
@@ -53,28 +59,38 @@ SESSION_SECRET=any-random-string
 npm run dev
 ```
 
-This starts both the Express dev server (API routes) and Vite (frontend) concurrently.
+Starts both the Express dev server (API routes) and Vite (frontend) concurrently.
 
-### Build
+### Test the morning brief locally
 
 ```bash
-npm run build
+# Preview (returns HTML, doesn't send)
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" "http://localhost:5173/api/cron/morning-brief?preview=true"
+
+# Force send (bypasses dedup)
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" "http://localhost:5173/api/cron/morning-brief?force=true"
 ```
 
 ## Deploy to Vercel
 
 1. Push to GitHub
 2. Import the repo in [Vercel](https://vercel.com)
-3. Add all environment variables from `.env.local` to the Vercel project settings (update `GOOGLE_REDIRECT_URI` to your production URL)
-4. Deploy
-
-The `vercel.json` rewrites are already configured — API routes go to `/api/*`, everything else serves the SPA.
+3. Add all environment variables (update `GOOGLE_REDIRECT_URI` to your production URL)
+4. Deploy — the cron job is configured in `vercel.json`
 
 ## Project structure
 
 ```
-src/           — React frontend (components, styles, utilities)
-api/           — Vercel serverless API routes
-server.ts      — Express dev server (proxies /api/* locally)
-vercel.json    — Vercel routing config
+api/
+  cron/morning-brief.ts    — Daily email cron job (the core)
+  _lib/
+    gemini.ts              — Gemini 2.0 Flash prompt + response parsing
+    email-template.ts      — HTML email builder (full + fallback)
+    google.ts              — OAuth2 client, token refresh
+    models.ts              — Mongoose schemas
+    db.ts, session.ts, time.ts
+  auth/                    — Google OAuth flow (locked to ALLOWED_EMAIL)
+  calendar.ts, emails.ts   — Google API data routes (dashboard)
+  priorities.ts, watchouts.ts, intention.ts — Dashboard CRUD
+src/                       — React dashboard (secondary surface)
 ```
