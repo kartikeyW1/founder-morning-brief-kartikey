@@ -24,6 +24,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Hard gate: only the allowed email can authenticate
     const allowedEmail = process.env.ALLOWED_EMAIL;
+    console.log('[AUTH DEBUG] email from Google:', JSON.stringify(email));
+    console.log('[AUTH DEBUG] ALLOWED_EMAIL env:', JSON.stringify(allowedEmail));
+    console.log('[AUTH DEBUG] match:', email === allowedEmail);
     if (allowedEmail && email !== allowedEmail) {
       return res.status(403).send(
         '<h2>Access Denied</h2><p>This app is locked to an authorized account. You are not it.</p>'
